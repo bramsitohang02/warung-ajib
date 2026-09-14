@@ -20,7 +20,8 @@
 
 1. **Clone repositori ini:**
    ```bash
-   git clone [https://github.com/bramsitohang02/warung-ajib.git](https://github.com/bramsitohang02/warung-ajib.git)
+   git clone [https://github.com/bramsitohang02/warung-ajib.git]
+   (https://github.com/bramsitohang02/warung-ajib.git)
    cd warung-ajib
 
 2. Instal dependensi Flutter:
