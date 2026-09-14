@@ -1,16 +1,33 @@
-# warung_ajib_uts
+# Warung Ajib - Flutter Mobile App
 
-A new Flutter project.
+## 📌 Deskripsi Proyek
+"Warung Ajib" adalah aplikasi *mobile* lintas platform (Android & iOS) yang dirancang untuk mendigitalisasi manajemen operasional dan pemesanan warung. Aplikasi ini berfokus pada antarmuka pengguna yang responsif, navigasi yang mulus, dan pengelolaan data secara langsung melalui integrasi REST API.
 
-## Getting Started
+> 📥 **Unduh Aplikasi:** [Klik di sini untuk mengunduh Warung Ajib (.apk) via Google Drive]
 
-This project is a starting point for a Flutter application.
+## 🛠️ Teknologi & Framework
+* **Framework:** Flutter
+* **Bahasa Pemrograman:** Dart
+* **Integrasi Data:** HTTP Client untuk konsumsi REST API & Firebase (Google Services)
+* **Kompilasi:** Dukungan rilis untuk Android (APK).
 
-A few resources to get you started if this is your first Flutter project:
+## ⚙️ Fitur Utama
+* **Katalog Produk Dinamis:** Menampilkan daftar menu makanan dan minuman secara *real-time* dari *backend*.
+* **Manajemen Pesanan:** Fitur interaktif untuk memilih menu dan mengelola keranjang pesanan pengguna.
+* **Integrasi API:** Sinkronisasi dua arah untuk data transaksi, menu, dan autentikasi pengguna ke basis data *backend* terpusat.
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## 🚀 Cara Menjalankan di Lokal (How to Run)
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+1. **Clone repositori ini:**
+   ```bash
+   git clone [https://github.com/bramsitohang02/warung-ajib.git](https://github.com/bramsitohang02/warung-ajib.git)
+   cd warung-ajib
+
+2. Instal dependensi Flutter:
+   ```bash
+   flutter pub get
+
+3. Jalankan Aplikasi:
+Pastikan emulator Android/iOS sudah berjalan, atau perangkat fisik sudah terhubung dalam mode debugging.
+  ```bash
+  flutter run
