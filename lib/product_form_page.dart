@@ -27,7 +27,7 @@ class _ProductFormPageState extends State<ProductFormPage> {
   final ImagePicker _picker = ImagePicker();
   
   // IP Address
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas'; 
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas'; 
   bool _isLoading = false;
 
   @override

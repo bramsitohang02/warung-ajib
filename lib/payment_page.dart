@@ -23,7 +23,7 @@ class _PaymentPageState extends State<PaymentPage> {
   String? _snapToken;
   
   // Pastikan IP Address Sesuai
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
   @override
   void initState() {

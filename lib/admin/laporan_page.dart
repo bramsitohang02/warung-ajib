@@ -22,7 +22,7 @@ class _LaporanPageState extends State<LaporanPage> {
   DateTime? _tglAkhir;
 
   // IP Address (Update jika berubah)
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
   @override
   void initState() {

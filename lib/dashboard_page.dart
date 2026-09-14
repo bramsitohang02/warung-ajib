@@ -21,8 +21,8 @@ class _DashboardPageState extends State<DashboardPage> {
   List<Map<String, dynamic>> _cart = [];
   int _totalJual = 0;
 
-  // Pastikan IP Address Sesuai
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  // Pastikan IP Address Sesuai dengan Ngrok Anda
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
   @override
   void initState() {
@@ -36,17 +36,26 @@ class _DashboardPageState extends State<DashboardPage> {
       if (response.statusCode == 200) {
         setState(() {
           _products = jsonDecode(response.body);
+        });
+      } else {
+        print("Gagal mengambil data: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Error Fetch Products: $e");
+    } finally {
+      // PERBAIKAN PENTING: Matikan loading apapun hasilnya (Sukses/Gagal)
+      if (mounted) {
+        setState(() {
           _isLoading = false;
         });
       }
-    } catch (e) {
-      print("Error: $e");
     }
   }
 
   void _addToCart(Map product) {
     setState(() {
       String nama = product['nmbrg'] ?? 'Produk';
+      // Safety parsing untuk harga (biar tidak error jika data string/int)
       int harga = int.tryParse(product['hrgjual']?.toString() ?? '0') ?? 0;
       int berat = 1000;
       String gambar = product['gambar'] ?? '';
@@ -68,6 +77,11 @@ class _DashboardPageState extends State<DashboardPage> {
   // --- LOGIKA MENU LENGKAP ---
   Future<void> _handleMenu(String value) async {
     if (value == 'Logout') {
+      // Clear session (Opsional jika pakai SharedPreferences)
+      // final prefs = await SharedPreferences.getInstance();
+      // await prefs.clear();
+      
+      if (!mounted) return;
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const LoginPage()));
     } else if (value == 'Riwayat') {
@@ -85,16 +99,22 @@ class _DashboardPageState extends State<DashboardPage> {
       } else if (value == 'SMS Center') {
         url = Uri.parse("sms:08123456789"); 
       } else if (value == 'Lokasi') {
-        url = Uri.parse("https://www.google.com/maps/dir//Jl.+Pd.+Majapahit+I+No.b.13,+Bandungmulyo,+Bandungrejo,+Kec.+Mranggen,+Kabupaten+Demak,+Jawa+Tengah+59567/@-6.9858982,110.4142924,15z/data=!4m8!4m7!1m0!1m5!1m1!1s0x2e708febc39e43ff:0x3c9207d4a18386b4!2m2!1d110.5068589!2d-7.0220514?entry=ttu&g_ep=EgoyMDI2MDEwNy4wIKXMDSoASAFQAw%3D%3D");
+        url = Uri.parse("https://maps.google.com/?q=-6.9823797,110.4095627"); // Contoh koordinat Semarang
       } else {
         return;
       }
 
-      if (await canLaunchUrl(url)) {
-        await launchUrl(url);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text("Gagal membuka fitur $value")));
+      try {
+        if (await canLaunchUrl(url)) {
+          await launchUrl(url, mode: LaunchMode.externalApplication);
+        } else {
+          throw 'Could not launch $url';
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal membuka fitur $value: $e")));
+        }
       }
     }
   }
@@ -111,9 +131,7 @@ class _DashboardPageState extends State<DashboardPage> {
             PopupMenuButton<String>(
               onSelected: _handleMenu,
               itemBuilder: (context) => [
-                // PERUBAHAN NOMOR 3: MENU RIWAYAT PINDAH KE PALING ATAS
                 const PopupMenuItem(value: 'Riwayat', child: Text("Riwayat Belanja")),
-                
                 const PopupMenuItem(value: 'Call Center', child: Text("Call Center")),
                 const PopupMenuItem(value: 'SMS Center', child: Text("SMS Center")),
                 const PopupMenuItem(value: 'Lokasi', child: Text("Lokasi / Maps")),
@@ -124,7 +142,23 @@ class _DashboardPageState extends State<DashboardPage> {
           ]),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : Column(
+          : _products.isEmpty
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.shopping_bag_outlined, size: 80, color: Colors.grey),
+                    const SizedBox(height: 10),
+                    const Text("Tidak ada produk / Gagal koneksi server", style: TextStyle(color: Colors.grey)),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _fetchProducts, 
+                      child: const Text("Coba Lagi")
+                    )
+                  ],
+                ),
+              )
+            : Column(
               children: [
                 Expanded(
                   child: GridView.builder(
@@ -138,7 +172,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     itemBuilder: (context, index) {
                       final product = _products[index];
                       String gambar = product['gambar'] ?? '';
-                      String imageUrl = "$_baseUrl/gambar/$gambar";
+                      String imageUrl = "$_baseUrl/gambar/$gambar"; // Sesuaikan folder uploads di server
 
                       return Card(
                         elevation: 3,
@@ -162,11 +196,13 @@ class _DashboardPageState extends State<DashboardPage> {
                             ),
                             InkWell(
                               onTap: () async {
+                                // Pastikan ProductDetailPage Anda menerima parameter ini
                                 final result = await Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => ProductDetailPage(
                                       product: product,
+                                      // Hapus baris di bawah jika ProductDetailPage tidak butuh baseUrl
                                       baseUrl: _baseUrl, 
                                     ),
                                   ),
@@ -199,6 +235,7 @@ class _DashboardPageState extends State<DashboardPage> {
                     },
                   ),
                 ),
+                // --- KERANJANG BAWAH ---
                 InkWell(
                   onTap: () async {
                     if (_cart.isEmpty) {
@@ -219,7 +256,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         _totalJual = 0; 
                       });
                       ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Keranjang direset")));
+                          const SnackBar(content: Text("Transaksi Selesai")));
                     }
                   },
                   child: Container(

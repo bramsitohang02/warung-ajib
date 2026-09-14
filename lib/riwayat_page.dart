@@ -24,7 +24,7 @@ class _RiwayatPageState extends State<RiwayatPage> {
   File? _selectedImage; 
   
   // Link Ngrok Static Anda (Update jika perlu)
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
   @override
   void initState() {

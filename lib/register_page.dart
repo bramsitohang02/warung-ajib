@@ -20,7 +20,7 @@ class _RegisterPageState extends State<RegisterPage> {
   bool _isLoading = false;
 
   // Pastikan IP Address Sesuai (192.168.1.1) & folder warung_api_uas
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
   Future<void> _register() async {
     if (_namaController.text.isEmpty || _emailController.text.isEmpty || _passwordController.text.isEmpty) {

@@ -6,9 +6,8 @@ import 'package:project_uas/dashboard_page.dart';
 import 'package:project_uas/admin/admin_dashboard_page.dart';
 import 'package:project_uas/register_page.dart';
 
-// --- (KITA MATIKAN IMPORT GOOGLE SEMENTARA AGAR TIDAK ERROR) ---
-// import 'package:google_sign_in/google_sign_in.dart' as google_lib; 
-// import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -23,43 +22,138 @@ class _LoginPageState extends State<LoginPage> {
   
   bool _isLoading = false; 
 
-  // --- LINK NGROK STATIC ANDA ---
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas';
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas';
 
-  // --- FUNGSI LOGIN GOOGLE (DUMMY / SEMENTARA) ---
-  Future<void> _handleGoogleSignIn() async {
-    // Tampilkan pesan bahwa fitur sedang maintenance
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Fitur Login Google sedang dalam pemeliharaan sistem (Maintenance). Silakan gunakan Login Email."),
-        backgroundColor: Colors.orange,
-        duration: Duration(seconds: 3),
-      )
-    );
+  @override
+  void initState() {
+    super.initState();
+    _initializeGoogleSignIn();
+  }
 
-    /* --- KODE ASLI DISIMPAN DI SINI (UNCOMMENT NANTI SETELAH UAS) ---
-    setState(() => _isLoading = true);
+  // --- INISIALISASI GOOGLE SIGN IN ---
+  Future<void> _initializeGoogleSignIn() async {
     try {
-      final google_lib.GoogleSignIn googleSignIn = google_lib.GoogleSignIn();
-      final google_lib.GoogleSignInAccount? googleUser = await googleSignIn.signIn();
+      await GoogleSignIn.instance.initialize();
+    } catch (e) {
+      print("Error initializing Google Sign-In: $e");
+    }
+  }
+
+  // --- FUNGSI LOGIN GOOGLE (VERSI 7.x FINAL) ---
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      GoogleSignInAccount googleUser;
       
-      if (googleUser == null) {
-        setState(() => _isLoading = false);
-        return;
+      // Gunakan authenticate() untuk versi 7.x
+      if (GoogleSignIn.instance.supportsAuthenticate()) {
+        googleUser = await GoogleSignIn.instance.authenticate();
+      } else {
+        throw Exception("Platform tidak support Google Sign-In");
+      }
+      
+      // Dapatkan idToken
+      final GoogleSignInAuthentication googleAuth = googleUser.authentication;
+
+      // Login ke Firebase (HANYA pakai idToken, tanpa accessToken)
+      if (googleAuth.idToken != null) {
+        final AuthCredential credential = GoogleAuthProvider.credential(
+          idToken: googleAuth.idToken,
+          // TIDAK pakai accessToken karena tidak ada di versi 7.x
+        );
+
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithCredential(credential);
+        User? user = userCredential.user;
+
+        if (user != null) {
+          await _loginGoogleToMyServer(
+            user.email!, 
+            user.displayName ?? "User Google", 
+            user.photoURL ?? ""
+          );
+        }
+      } else {
+        throw Exception("Gagal mendapatkan ID Token Google");
       }
 
-      final google_lib.GoogleSignInAuthentication googleAuth = await googleUser.authentication;
-      // ... logika auth lainnya ...
+    } on GoogleSignInException catch (e) {
+      print("GoogleSignInException: ${e.code}");
+      if (!mounted) return;
+      
+      String errorMessage = "Gagal Login Google: ${e.code}";
+      
+      // Berikan petunjuk jika error konfigurasi
+      if (e.code == GoogleSignInExceptionCode.clientConfigurationError) {
+        errorMessage = """
+Error Konfigurasi Google Sign-In!
+
+""";
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          duration: const Duration(seconds: 8),
+        )
+      );
     } catch (e) {
-      // ... error handling ...
+      print("Error Google: $e");
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Gagal Login Google: $e"))
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    */
+  }
+
+  // --- LOGIN KE DATABASE SENDIRI VIA PHP ---
+  Future<void> _loginGoogleToMyServer(String email, String nama, String foto) async {
+    try {
+      final response = await http.post(
+        Uri.parse("$_baseUrl/login_google.php"),
+        body: {
+          "email": email,
+          "nama": nama,
+          "foto": foto, 
+        },
+      );
+
+      final data = jsonDecode(response.body);
+
+      if (data['success'] == true) {
+        String id = data['id'];
+        String role = 'user';
+
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('id_user', id); 
+        await prefs.setString('nama_user', nama);
+        await prefs.setString('role_user', role);
+        await prefs.setBool('is_login', true);
+
+        if (!mounted) return;
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const DashboardPage()),
+        );
+      } else {
+        throw Exception(data['message']);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error Server: $e"))
+      );
+    }
   }
 
   // --- LOGIN BIASA (MANUAL) ---
   Future<void> _login() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Email dan Password harus diisi!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Email dan Password harus diisi!"))
+      );
       return;
     }
 
@@ -91,18 +185,28 @@ class _LoginPageState extends State<LoginPage> {
           if (!mounted) return;
           
           if (role == 'admin') {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const AdminDashboardPage()));
+            Navigator.pushReplacement(
+              context, 
+              MaterialPageRoute(builder: (context) => const AdminDashboardPage())
+            );
           } else {
-            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardPage()));
+            Navigator.pushReplacement(
+              context, 
+              MaterialPageRoute(builder: (context) => const DashboardPage())
+            );
           }
         } else {
           if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Gagal: ${data['message']}")));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("Gagal: ${data['message']}"))
+          );
         }
       } 
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error Koneksi: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error Koneksi: $e"))
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -139,7 +243,6 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: 25),
             
-            // TOMBOL MASUK BIASA
             SizedBox(
               width: double.infinity,
               height: 50,
@@ -152,13 +255,12 @@ class _LoginPageState extends State<LoginPage> {
             ),
             const SizedBox(height: 15),
             
-            // --- TOMBOL GOOGLE (TETAP ADA TAPI MAINTENANCE) ---
             SizedBox(
               width: double.infinity,
               height: 50,
               child: OutlinedButton.icon(
-                onPressed: _handleGoogleSignIn, // Memanggil fungsi dummy
-                icon: Image.asset('assets/images/google_logo.png', height: 24), 
+                onPressed: _isLoading ? null : _handleGoogleSignIn,
+                icon: Image.asset('assets/images/google_logo.png', height: 24),
                 label: const Text("Masuk dengan Google"),
                 style: OutlinedButton.styleFrom(
                   side: const BorderSide(color: Colors.grey),
@@ -169,7 +271,10 @@ class _LoginPageState extends State<LoginPage> {
             
             TextButton(
               onPressed: () {
-                Navigator.push(context, MaterialPageRoute(builder: (context) => const RegisterPage()));
+                Navigator.push(
+                  context, 
+                  MaterialPageRoute(builder: (context) => const RegisterPage())
+                );
               },
               child: const Text("Belum punya akun? Daftar disini"),
             ),

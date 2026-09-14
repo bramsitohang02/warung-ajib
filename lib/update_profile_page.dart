@@ -16,7 +16,7 @@ class _UpdateProfilePageState extends State<UpdateProfilePage> {
   final TextEditingController _passwordController = TextEditingController();
   
   bool _isLoading = true;
-  final String _baseUrl = 'https://vesta-subcomplete-melonie.ngrok-free.dev/warung_api_uas'; 
+  final String _baseUrl = 'https://warungajibuas.my.id/warung_api_uas'; 
 
   // Variabel untuk menyimpan ID User yang sedang login
   String _currentUserId = "";
